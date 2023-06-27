@@ -1,0 +1,96 @@
+import xarray as xr
+import cfgrib
+from matplotlib import pyplot as plt
+import numpy as np
+import cartopy.crs as ccrs
+
+year ='2020'
+month= '01'
+mes=str(month).zfill(2)
+path='D:\\Dana\\PracticasMeteoG\\'+year+'\\'
+
+ds=xr.open_dataset(path+'CERRA-t2m-'+year+'-'+month+'.grib', engine='cfgrib')
+ds.coords['longitude'] = (ds.coords['longitude'] + 180) % 360 - 180
+
+dsC = ds.sel(x=slice(180,380), y=slice(340,540))
+dsVar= ds.metpy.parse_cf('t2m')
+
+# sacamos max y min
+dsMax=dsVar.resample(time='1D').max(dim='time')
+dsMin=dsVar.resample(time='1D').min(dim='time')
+
+# I want to find the speed at a certain lat/lon point.
+lat = 42.87
+lon = -8.54
+
+# First, find the index of the grid point nearest a specific lat/lon.   
+abslat = np.abs(dsC.latitude-lat)
+abslon = np.abs(dsC.longitude-lon)
+
+a1=np.max(ds.longitude)
+a2=np.min(ds.longitude)
+b1=np.max(ds.latitude)
+b2=np.max(ds.latitude)
+
+cLat=(b1+b2)/2
+cLon=(a1+a2)/2
+
+c = np.maximum(abslon, abslat)
+
+#donde máximo coincide con mínimo
+([yloc], [xloc]) = np.where(c == np.min(c))
+
+# Now I can use that index location to get the values at the x/y diminsion
+point_ds = dsMax.sel(x=xloc, y=yloc)
+
+plt.figure(figsize=(14, 6))
+#Incluyo la latitud y longitud ya calculadas
+projection = ccrs.LambertConformal(central_longitude=7.99, central_latitude=75.346, standard_parallels=(50,50))
+p=dsMax.sel(time='2020-01-01').plot.pcolormesh(x='longitude',y='latitude',
+                                               transform=ccrs.PlateCarree(),subplot_kws={"projection": projection})
+
+p.axes.gridlines(draw_labels=True)
+p.axes.coastlines()
+#ax.set_xlim(-8.9,-8.2)
+#ax.set_ylim(42.6,43.2)
+plt.title('Represetación t2m máx del modelo CERRA- Europa')
+
+#Aplicado a un punto específico (Santiago de Compostela)
+#acotamos los datos
+dsC = ds.sel(x=slice(180,380), y=slice(340,540))
+dsVar= dsC.metpy.parse_cf('t2m')
+
+# sacamos max y min
+dsMax=dsVar.resample(time='1D').max(dim='time')
+dsMin=dsVar.resample(time='1D').min(dim='time')
+
+# I want to find the speed at a certain lat/lon point-> Santiago de Compostela
+lat = 42.87
+lon = -8.54
+
+# First, find the index of the grid point nearest a specific lat/lon.   
+abslat = np.abs(dsC.latitude-lat)
+abslon = np.abs(dsC.longitude-lon)
+c = np.maximum(abslon, abslat)
+([yloc], [xloc]) = np.where(c == np.min(c))
+
+# Now I can use that index location to get the values at the x/y diminsion
+point_ds = dsMax.sel(x=xloc, y=yloc)
+
+plt.figure(figsize=(14, 6))
+projection = ccrs.PlateCarree()
+ax = plt.axes(projection=projection)
+dsMax.sel(time='2020-01-01').plot.pcolormesh(x='longitude',y='latitude', ax=ax, edgecolor='gray')
+ax.coastlines()
+ax.set_xlim(-8.9,-8.2)
+ax.set_ylim(42.6,43.2)
+
+plt.scatter(lon, lat, color='b')
+plt.text(lon, lat, 'requested')
+plt.scatter(point_ds.longitude, point_ds.latitude, color='greenyellow')
+plt.text(point_ds.longitude, point_ds.latitude, 'nearest')
+plt.annotate('Santiago de Compostela', xy=(lon,lat-0.01), xytext=(point_ds.longitude-0.1, point_ds.latitude-0.1), arrowprops=dict(color='r', shrink=0.005, width=0.05, headwidth=5))
+plt.title('Temperatura al punto más cercano \n (%s, %s) Santiago de Compostela' %(str(lat),str(lon)))
+plt.show()
+
+
