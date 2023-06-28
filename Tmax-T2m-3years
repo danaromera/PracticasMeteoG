@@ -1,0 +1,142 @@
+import cdstoolbox as ct
+layout = {
+    'input_ncols': 1,
+}
+
+variables = {
+    'Temperatura_2m':'2m_temperature',
+    'Temperatura_maxima_2m_prev_pos':'Maximum 2m temperature since previous post-processing',
+
+}
+
+@ct.application(title='Extract a time series and plot graph', layout=layout)
+#@ct.input.dropdown('var', label='Variable', values=variables.keys(), description='Sample variables')
+@ct.input.text('lon', label='Longitude', type=float, default=-8.521168, description='Decimal degrees')
+@ct.input.text('lat', label='Latitude', type=float, default=42.886624, description='Decimal degrees')
+@ct.output.livefigure()
+
+def plot_time_series(lon, lat):
+    """
+    Application main steps:
+
+    - set the application layout with 3 columns for the input and output at the bottom
+    - retrieve a variable over a defined time range
+    - select a location, defined by longitude and latitude coordinates
+    - compute the daily average
+    - show the result as a timeseries on an interactive chart
+
+    """
+
+    # Time range
+    data = ct.catalogue.retrieve(
+        'reanalysis-cerra-single-levels',
+        {
+            'variable': '2m_temperature',
+            'level_type': 'surface_or_atmosphere',
+            'area':['46', '-12', '34', '6'],
+            'grid':['0.045','0.045'],
+            'data_type': 'reanalysis',
+            'product_type': 'analysis',
+            'year': ['2018','2019','2020'
+                    ],
+            'month': ['01','02','03','04','05',
+                      '06','07','08','09','10',
+                      '11','12'
+                     ],
+            'day': [
+                '01', '02', '03',
+                '04', '05', '06',
+                '07', '08', '09',
+                '10', '11', '12',
+                '13', '14', '15',
+                '16', '17', '18',
+                '19', '20', '21',
+                '22', '23', '24',
+                '25', '26', '27',
+                '28', '29', '30',
+                '31',
+            ],
+            'time': [
+                '00:00', '03:00', '06:00',
+                '09:00', '12:00', '15:00',
+                '18:00', '21:00',
+            ],
+        }
+    )
+    data2 = ct.catalogue.retrieve(
+        'reanalysis-cerra-single-levels',
+        {
+            'variable': 'maximum_2m_temperature_since_previous_post_processing',
+            'level_type': 'surface_or_atmosphere',
+            'area':['46', '-12', '34', '6'],
+            'grid':['0.045','0.045'],
+            'data_type': 'reanalysis',
+            'product_type': 'forecast',
+            'year': ['2018','2019','2020'
+                    ],
+            'month': ['01','02','03','04','05',
+                      '06','07','08','09','10',
+                      '11','12'
+                     ],
+            'day': [
+                '01', '02', '03',
+                '04', '05', '06',
+                '07', '08', '09',
+                '10', '11', '12',
+                '13', '14', '15',
+                '16', '17', '18',
+                '19', '20', '21',
+                '22', '23', '24',
+                '25', '26', '27',
+                '28', '29', '30',
+                '31',
+            ],
+            'time': [
+                '00:00', '03:00', '06:00',
+                '09:00', '12:00', '15:00',
+                '18:00', '21:00',
+            ],
+            'leadtime_hour': [
+                '1', '2', '3',
+            ],
+        }
+    )
+        
+
+    
+    # Location selection
+
+    # Extract the closest point to selected lon/lat (no interpolation).
+    # If wrong number is set for latitude, the closest available one is chosen:
+    # e.g. if lat = 4000 -> lat = 90.
+    # If wrong number is set for longitude, first a wrap in [-180, 180] is made,
+    # then the closest one present is chosen:
+    # e.g. if lon = 200 -> lon = -160.
+    data_sel_1 = ct.geo.extract_point(data, lon=lon, lat=lat)
+    data_sel_2 = ct.geo.extract_point(data2, lon=lon, lat=lat)
+
+    # Daily mean on selection
+    data_daily_max1 = ct.climate.daily_max(data_sel_1)
+    data_mon_max1_mean = ct.climate.monthly_mean(data_daily_max1)
+    
+    #data2=plot_time_series('Temperatura_2m',lon,lat)    
+    #data_sel_2 = ct.geo.extract_point(data2, lon=lon, lat=lat)
+
+    # Daily mean on selection
+    data_daily_max2 = ct.climate.daily_max(data_sel_2)
+    data_mon_max2_mean = ct.climate.monthly_mean(data_daily_max2)
+
+    fig = ct.chart.line(data_mon_max1_mean,
+                        name='T2m 3h')
+    fig = ct.chart.line(data_mon_max2_mean,
+                        name='maxT2m since prev post 1h',
+                        layout_kwargs = {
+                            'legend': {
+                                'orientation': 'h',
+                                'y': 1.1,
+                                'x': 0.05
+                            },
+                        },
+                        fig=fig)
+
+    return fig
