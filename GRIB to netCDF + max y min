@@ -1,0 +1,36 @@
+import xarray as xr
+import cfgrib
+import sys,os 
+
+
+year=sys.argv[1]
+maxima=[]
+minima=[]
+
+
+for i in range(1,13):
+	month=str(i).zfill(2)
+	path='../GRIB-DATA/'+year+'/CERRA-2mTemp-analysis-'+year+'-'+month+'.grib'
+	ds=xr.open_dataset(path,engine='cfgrib')
+
+	dsMax=ds.resample(time='1D').max(dim='time')-273.15
+	dsMin=ds.resample(time='1D').min(dim='time')-273.15
+
+	maxima.append(dsMax)
+	minima.append(dsMin)
+	print(path)
+
+dsMaxTot=xr.concat(maxima, dim='time').to_netcdf('../PYTHON-DATA/TMax-'+year+'.nc')
+dsMinTot=xr.concat(minima, dim='time').to_netcdf('../PYTHON-DATA/TMin-'+year+'.nc')
+
+os.system('cdo  remapbil,../PYTHON-DATA/WRF-NC/wrf-ref.nc '+\
+ 		   '../PYTHON-DATA/TMax-'+year+'.nc '+\
+ 		   '../PYTHON-DATA/TMax-'+year+'-regrid.nc')
+
+os.system('cdo  remapbil,../PYTHON-DATA/WRF-NC/wrf-ref.nc '+\
+  		   '../PYTHON-DATA/TMin-'+year+'.nc '+\
+  		   '../PYTHON-DATA/TMin-'+year+'-regrid.nc')
+
+os.system('rm ../PYTHON-DATA/TMin-'+year+'.nc')
+os.system('rm ../PYTHON-DATA/TMax-'+year+'.nc')
+
