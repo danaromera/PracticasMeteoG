@@ -1,0 +1,56 @@
+Climate Data Store (CDS) Application Program Interface (API)
+https://cds.climate.copernicus.eu/api-how-to
+
+Dataset
+https://cds.climate.copernicus.eu/cdsapp#!/search?type=dataset
+
+CERRA sub-daily regional reanalysis data for Europe on single levels from 1984 to present
+https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-cerra-single-levels?tab=overview
+
+import cdsapi
+year='2020'
+
+from os import mkdir
+
+for month in ['01','02','03','04','05','06','07','08','09','10','11','12']:
+    c = cdsapi.Client()
+
+    c.retrieve(
+        'reanalysis-cerra-single-levels',
+        {
+            'variable': [
+                '2m_temperature'
+            ],
+            'level_type': 'surface_or_atmosphere',
+            'data_type': 'reanalysis',
+            'product_type': 'analysis',
+            'year': year,
+            'month': [
+                month, 
+            ],
+            'day': [
+                '01', '02', '03',
+                '04', '05', '06',
+                '07', '08', '09',
+                '10', '11', '12',
+                '13', '14', '15',
+                '16', '17', '18',
+                '19', '20', '21',
+                '22', '23', '24',
+                '25', '26', '27',
+                '28', '29', '30',
+                '31',
+            ],
+            'time': [
+                '00:00', '03:00', '06:00',
+                '09:00', '12:00', '15:00',
+                '18:00', '21:00',
+            ],
+           # 'leadtime_hour': [
+                '1', '2', '3',
+            #],
+            'format': 'grib',
+        },
+        'D:/Dana/PracticasMeteoG/GRIB-DATA/'+year+'/CERRA-t2m-'+year+'-'+month+'.grib'
+        #'CERRA-GRIB/'+year+'/CERRA-max-min-prev-post-'+year+'-'+month+'.grib'
+    )
