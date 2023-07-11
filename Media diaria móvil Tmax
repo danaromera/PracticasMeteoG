@@ -1,0 +1,22 @@
+import glob as glob 
+import xarray as xr
+import matplotlib.pyplot as plt
+import netCDF4
+
+lista_files=glob.glob('../PYTHON-DATA/TMax*.nc')
+
+ds=xr.open_mfdataset(lista_files)
+
+doy=ds.groupby("time.dayofyear").mean(dim='time')
+
+doyRol=doy.rolling(min_periods=7,center=True).mean()
+
+datos_TMax=doyRol.to_netcdf('../PYTHON-DATA/datos_media_TMax/datos_TMax.nc')
+
+#Si queremos plotear la media móvil diaria para un día concreto del año. 
+
+doyRol.sel(dayofyear=180).t2m.plot(vmin=-10,vmax=42)
+plt.title('Media diaría móvil 30 años día '+dayofyear+'')
+plt.savefig('Media_30años_media_movil_TMax_'+dayofyear+'.png')
+
+
