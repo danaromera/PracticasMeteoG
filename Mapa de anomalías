@@ -1,0 +1,254 @@
+import matplotlib
+matplotlib.use('TKAgg')
+import xarray as xr
+from matplotlib import pyplot as plt
+import numpy as np
+import datetime
+import matplotlib.colors as mcolors
+import cartopy.crs as ccrs
+import matplotlib.ticker as mticker
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+import cartopy.feature as cf
+from cartopy.io.shapereader import Reader
+from cartopy.feature import ShapelyFeature
+
+
+hoxe = datetime.datetime.today()
+
+
+anomesdia=str(hoxe.year)+str(hoxe.month).zfill(2)+str(hoxe.day).zfill(2)
+
+ruta='https://mandeo.meteogalicia.es/thredds/dodsC/modelos/WRF_ARW_1KM_HIST_Novo/'+\
+      anomesdia+'/wrf_arw_det_history_d01_'+anomesdia+'_0000.nc4'
+
+ds=xr.open_dataset(ruta)
+dsMax= ds.temp.resample(time='1D').max(dim='time')-273.15
+dsMin= ds.temp.resample(time='1D').min(dim='time')-273.15
+
+dsrMax=xr.open_dataset('../PYTHON-DATA/datos_media_TMax/datos_TMax.nc')
+dsrMin=xr.open_dataset('../PYTHON-DATA/datos_media_TMin/datos_TMin.nc')
+#dsMax.isel(time=1).plot(vmin=-10,vmax=42)
+#plt.savefig('TMax-WRF1km-'+anomesdia+'.png')
+#plt.close()
+
+for d in range(4):
+      doyear = (hoxe+datetime.timedelta(days=d)).timetuple().tm_yday
+      
+      dsMaxr=dsrMax.sel(dayofyear=doyear)
+      dsMinr=dsrMin.sel(dayofyear=doyear)
+
+      difMax=dsMax.isel(time=d)-dsMaxr
+      difMin=dsMin.isel(time=d)-dsMinr
+      print(difMax)
+
+
+
+      color_list=[[245./255.,187./255.,200./255.,255./255.],\
+                              [240./255.,169./255.,212./255.,255./255.],[231./255.,151./255.,217./255.,255./255.],\
+                              [225./255.,133./255.,244./255.,255./255.],[229./255.,108./255.,251./255.,255./255.],\
+                              [184./255.,90./255.,228./255,255./255.],[144./255.,88./255.,211./255.,255./255.],\
+                              [108./255.,83./255.,200./255.,255./255.],[72./255.,80./255.,179./255.,255./255.],\
+
+                              [36./255.,76./255.,162./255.,255./255.],[5./255.,68./255.,135./255.,255./255.],\
+                              [27./255.,97./255.,166./255.,255./255.],[44./255.,114./255.,199./255.,255./255.],\
+                              [62./255.,136./255.,221./255.,255./255.],[106./255.,182./255.,240./255.,255./255.],\
+                              [122./255.,205./255.,249./255.,255./255.],[133./255.,231./255.,242./255.,255./255.],\
+                              [162./255.,247./255.,244./255.,255./255.],[255./255.,255./255.,255./255.,255./255.],\
+
+                              [255./255.,255./255.,254./255.,255./255.],[255./255.,253./255.,192./255.,255./255.],\
+                              [254./255.,233./255.,168./255.,255./255.],[250./255.,213./255.,125./255.,255./255.],\
+                              [252./255.,181./255.,89./255.,255./255.],[250./255.,140./255.,78./255.,255./255.],\
+                              [237./255.,98./255.,79./255.,255./255.],[224./255.,59./255.,45./255.,255./255.],\
+                              [195./255.,30./255.,34./255.,255./255.],[158./255.,35./255.,65./255.,255./255.],\
+
+                              [184./255.,68./255.,87./255.,255./255.],[213./255.,98./255.,115./255.,255./255.],\
+                              [233./255.,136./255.,167./255.,255./255.],[253./255.,173./255.,226./255.,255./255.],\
+                              [233./255.,151./255.,197./255.,255./255.],[204./255.,133./255.,163./255.,255./255.],\
+                              [174./255.,119./255.,138./255.,255./255.],[157./255.,100./255.,107./255.,255./255.],\
+                              [124./255.,85./255.,78./255.,255./255.]]
+      clevs=[-28,-24,\
+                        -20,-18,\
+                        -16,-14,\
+                        -12,-10,\
+                        -8,-7,\
+                        -6,-5,\
+                        -4,-3.5,\
+                        -3,-2.5,\
+                        -2,-1.5,\
+                        -1,0,\
+                        1,1.5,\
+                        2,2.5,\
+                        3,3.5,\
+                        4,5,\
+                        6,7,\
+                        8,10,\
+                        12,14,\
+                        16,18,\
+                        20,24,\
+                        28]
+
+      clevs2=[-28,\
+                        -20,\
+                        -16,\
+                        -12,\
+                        -8,\
+                        -6,\
+                        -4,\
+                        -3,\
+                        -2,\
+                        -1,\
+                        0,\
+                        1,\
+                        2,\
+                        3,\
+                        4,\
+                        6,\
+                        8,\
+                        12,\
+                        16,\
+                        20,\
+                        28]
+
+      mes=['XAN','FEB','MAR','ABR','MAI','XUN','XUL','AGO','SET','OUT','NOV','DEC']
+      diasemana=[u'LUNS',u'MARTES',u'MÉRCORES',u'XOVES',u'VENRES',u'SÁBADO',u'DOMINGO']
+      fecha=diasemana[(hoxe+datetime.timedelta(days=d)).weekday()]+\
+                      ' '+str((hoxe+datetime.timedelta(days=d)).day).zfill(2)+\
+                      mes[(hoxe+datetime.timedelta(days=d)).month-1]+\
+                      str((hoxe+datetime.timedelta(days=d)).year)
+
+      colormap = mcolors.ListedColormap(color_list)
+      colormap.set_over([99./255.,71./255.,49./255.,255./255.])
+      colormap.set_under([255./255.,204./255.,179./255.,255./255.])
+      norm = mcolors.BoundaryNorm(clevs, 38)
+      cm=colormap
+
+      #cen_lat=(dif.lat.max()+dif.lat.min()/2).values
+      #cen_lon=(dif.lon.max()+dif.lon.min()/2).values
+      cen_lat=40.2
+      cen_lon=-5.3
+      map_proj = ccrs.LambertConformal(central_longitude=cen_lon,
+                  central_latitude=cen_lat, standard_parallels=(36,48))
+
+
+
+      fig=plt.figure(figsize=(12,9.8))
+      ax = fig.add_axes([0.00,-0.05,1,0.99],projection=map_proj)
+      #ax = plt.axes(projection=map_proj)
+      m=difMax.t2m.plot.contourf(x='lon',y='lat', cmap=colormap, norm=norm,
+                              #lonlim=[-14, 2], latlim=[36,44],
+                              #xlim=(-14, 2),
+                              #ylim=(1,4400000),
+                              extend='both',transform=ccrs.PlateCarree(),
+                              subplot_kws={"projection":ccrs.PlateCarree()},
+                              cbar_kwargs={
+                                           'orientation': 'horizontal',
+                                           'ticks':clevs2, 'pad':0.062,
+                                           'shrink':0.85, 'aspect':50, 
+                                           'drawedges':'True', 
+                                           'label':u'Anomalía Temp. Máxima ($^\circ$C)'})
+                              
+
+      ax.set_extent([-13, 3.3, 35, 45], ccrs.PlateCarree())
+      ax.set_title(u'Anomalía Temp. Máxima ($^\circ$C)',fontsize=17)
+      ax.set_title('CERRA - WRF5km MeteoGalicia', loc='left',fontsize=14)
+      ax.set_title(fecha, loc='right',fontsize=16)
+
+      fname='lineas_limite/SHP_ETRS89/recintos_provinciales_inspire_peninbal_etrs89/recintos_provinciales_inspire_peninbal_etrs89.shp'
+      #fname='lineas_limite/SHP_ETRS89/ll_provinciales_inspire_peninbal_etrs89/ll_provinciales_inspire_peninbal_etrs89.shp'
+      # shape_feature = ShapelyFeature(Reader(fname).geometries(),
+      #                                ccrs.PlateCarree(),
+      #                                facecolor='none')
+
+      shape_feature = ShapelyFeature(Reader(fname).geometries(),
+                                     ccrs.Geodetic(),
+                                     facecolor='none')
+
+      ax.coastlines(zorder=6,linewidth=0.4,color='gray')
+      ax.add_feature(cf.BORDERS,linewidth=0.4,color='gray')
+      ax.add_feature(shape_feature,
+                     edgecolor='gray',linewidth=0.4)
+
+
+
+
+      gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                        x_inline=False, y_inline=False,
+                        linewidth=0.1, color='gray', alpha=0.8, linestyle='--')
+
+
+      gl.top_labels = False
+      gl.right_labels = False
+      gl.ylocator = mticker.FixedLocator(np.arange(35,47,1))
+      gl.xlocator = mticker.FixedLocator(np.arange(-14,4,1))
+      gl.xformatter = LONGITUDE_FORMATTER
+      gl.yformatter = LATITUDE_FORMATTER
+      gl.ylabel_style = {'size': 9, 'color': 'gray'}
+      gl.xlabel_style = {'size': 9, 'color': 'gray',
+                         #'rotation': 20
+                         }
+
+
+      plt.savefig('Peninsula_5km_TMax_anomalia_d'+str(d).zfill(2)+'.png')
+
+#----------------------------------------------------------------------------------
+
+      fig=plt.figure(figsize=(12,9.8))
+      ax = fig.add_axes([0.00,-0.05,1,0.99],projection=map_proj)
+      #ax = plt.axes(projection=map_proj)
+      m=difMin.t2m.plot.contourf(x='lon',y='lat', cmap=colormap, norm=norm,
+                              #lonlim=[-14, 2], latlim=[36,44],
+                              #xlim=(-14, 2),
+                              #ylim=(1,4400000),
+                              extend='both',transform=ccrs.PlateCarree(),
+                              subplot_kws={"projection":ccrs.PlateCarree()},
+                              cbar_kwargs={
+                                           'orientation': 'horizontal',
+                                           'ticks':clevs2, 'pad':0.062,
+                                           'shrink':0.85, 'aspect':50, 
+                                           'drawedges':'True', 
+                                           'label':u'Anomalía Temp. Mínima ($^\circ$C)'})
+                              
+
+      ax.set_extent([-13, 3.3, 35, 45], ccrs.PlateCarree())
+      ax.set_title(u'Anomalía Temp. Mínima ($^\circ$C)',fontsize=17)
+      ax.set_title('CERRA - WRF5km MeteoGalicia', loc='left',fontsize=14)
+      ax.set_title(fecha, loc='right',fontsize=16)
+
+      fname='lineas_limite/SHP_ETRS89/recintos_provinciales_inspire_peninbal_etrs89/recintos_provinciales_inspire_peninbal_etrs89.shp'
+      #fname='lineas_limite/SHP_ETRS89/ll_provinciales_inspire_peninbal_etrs89/ll_provinciales_inspire_peninbal_etrs89.shp'
+      # shape_feature = ShapelyFeature(Reader(fname).geometries(),
+      #                                ccrs.PlateCarree(),
+      #                                facecolor='none')
+
+      shape_feature = ShapelyFeature(Reader(fname).geometries(),
+                                     ccrs.Geodetic(),
+                                     facecolor='none')
+
+      ax.coastlines(zorder=6,linewidth=0.4,color='gray')
+      ax.add_feature(cf.BORDERS,linewidth=0.4,color='gray')
+      ax.add_feature(shape_feature,
+                     edgecolor='gray',linewidth=0.4)
+
+
+
+
+      gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                        x_inline=False, y_inline=False,
+                        linewidth=0.1, color='gray', alpha=0.8, linestyle='--')
+
+
+      gl.top_labels = False
+      gl.right_labels = False
+      gl.ylocator = mticker.FixedLocator(np.arange(35,47,1))
+      gl.xlocator = mticker.FixedLocator(np.arange(-14,4,1))
+      gl.xformatter = LONGITUDE_FORMATTER
+      gl.yformatter = LATITUDE_FORMATTER
+      gl.ylabel_style = {'size': 9, 'color': 'gray'}
+      gl.xlabel_style = {'size': 9, 'color': 'gray',
+                         #'rotation': 20
+                         }
+
+
+      plt.savefig('Peninsula_5km_TMin_anomalia_d'+str(d).zfill(2)+'.png')
+
+
