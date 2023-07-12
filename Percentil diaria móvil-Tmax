@@ -1,0 +1,22 @@
+import glob as glob 
+import xarray as xr
+import matplotlib.pyplot as plt
+import netCDF4
+import numpy as np
+import datetime
+
+lista_files=glob.glob('../PYTHON-DATA/TMax*.nc')
+
+ds=xr.open_mfdataset(lista_files)
+
+dsrol=ds.rolling(time=7,center=True).construct('window')
+
+ldsrolGB=list(dsrol.groupby('time.dayofyear'))
+
+for doy in range(365):
+	fecha=datetime.datetime.fromordinal(doy+1).strftime('%b%d')
+	print(fecha)
+	dstack=ldsrolGB[doy][1].t2m.stack(z=("time", "window"))
+	dstack.data=dstack.data.rechunk([-1,-1,-1])	
+	perc=dstack.quantile(np.arange(0,1.01,0.01),dim='z')
+	perc.to_netcdf('../PYTHON-DATA/PERCENTIL-TMAX/Tmax-PERC-doy-'+str(doy+1).zfill(3)+'-'+fecha+'.nc')
