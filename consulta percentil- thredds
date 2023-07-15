@@ -1,0 +1,29 @@
+import glob as glob 
+import xarray as xr
+import matplotlib.pyplot as plt
+import netCDF4
+import numpy as np
+import datetime
+
+hoxe = datetime.datetime.today()
+doyear = hoxe.timetuple().tm_yday
+anomesdia=str(hoxe.year)+str(hoxe.month).zfill(2)+str(hoxe.day).zfill(2)
+
+ruta='https://mandeo.meteogalicia.es/thredds/dodsC/modelos/WRF_ARW_1KM_HIST_Novo/'+\
+      anomesdia+'/wrf_arw_det_history_d01_'+anomesdia+'_0000.nc4'
+ds=xr.open_dataset(ruta)
+dst= ds.temp.resample(time='1D').max(dim='time')-273.15
+
+
+files=glob.glob('../PYTHON-DATA/PERCENTIL-TMAX/Tmax-PERC-doy-'+str(doyear).zfill(3)+'*.nc')
+dsr=xr.open_mfdataset(files[0])
+
+dif=dst.isel(time=0)-dsr
+qtl=dif.argmin(dim='quantile').t2m
+
+qtl.plot()
+
+plt.savefig('peninsula_quantiles_'+str(doyear).zfill(3)+'.png')
+
+#loc=np.argmin(dif)
+#valor_loc=dsMaxr['quantile'].values[loc]
